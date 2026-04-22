@@ -1,0 +1,128 @@
+// © VitoSantarsiero | Optimized by Pinescripts experts
+//@version=5
+indicator("V-Sessions", overlay = true, max_boxes_count = 500, max_lines_count = 500)
+
+// =============================================================================
+// DATA STRUCTURES (UDT)
+// =============================================================================
+type SessionState
+    box sessionBox
+    label sessionLabel
+    line vLineCustom 
+    line extHigh     
+    line extLow      
+    float sHigh
+    float sLow
+    int startIndex
+    bool wasInSession
+
+// =============================================================================
+// CORE LOGIC FUNCTIONS
+// =============================================================================
+f_manageSession(SessionState state, bool _enabled, bool _hist, bool _extEnabled, string _name, string _sess, string _tz, color _col, int _vLineHour = -1, int _vLineMin = -1) =>
+    bool inS = _enabled and not na(time(timeframe.period, _sess, _tz))
+    color borderColor = color.new(_col, 0) 
+    
+    // --- LOGICA INIZIO SESSIONE ---
+    if inS and not state.wasInSession
+        state.sHigh := high
+        state.sLow := low
+        state.startIndex := bar_index
+        
+        if not _hist
+            box.delete(state.sessionBox)
+            label.delete(state.sessionLabel)
+            line.delete(state.vLineCustom)
+        
+        state.sessionBox := box.new(bar_index, high, bar_index, low, bgcolor=_col, border_color=borderColor)
+        state.sessionLabel := label.new(bar_index, high, _name, style=label.style_label_down, textcolor=borderColor, color=color.new(color.black, 100), size=size.tiny)
+        state.vLineCustom := na 
+        
+        line.delete(state.extHigh)
+        line.delete(state.extLow)
+        state.extHigh := na
+        state.extLow := na
+
+    // --- LOGICA SESSIONE ATTIVA ---
+    if _enabled
+        if inS
+            state.sHigh := math.max(state.sHigh, high)
+            state.sLow := math.min(state.sLow, low)
+            
+            box.set_rightbottom(state.sessionBox, bar_index, state.sLow)
+            box.set_top(state.sessionBox, state.sHigh)
+            
+            // CENTRAMENTO LABEL
+            int centerIndex = math.round(math.avg(state.startIndex, bar_index))
+            label.set_xy(state.sessionLabel, centerIndex, state.sHigh)
+
+            if _vLineHour != -1
+                int currentHour = hour(time, _tz)
+                int currentMin  = minute(time, _tz)
+                if currentHour == _vLineHour and currentMin == _vLineMin and na(state.vLineCustom)
+                    state.vLineCustom := line.new(bar_index, state.sLow, bar_index, state.sHigh, color=borderColor, style=line.style_dashed)
+                if not na(state.vLineCustom)
+                    line.set_y1(state.vLineCustom, state.sLow), line.set_y2(state.vLineCustom, state.sHigh)
+
+        // --- LOGICA ESTENSIONI (RIGHT INFINITE) ---
+        if _extEnabled and not na(state.sHigh)
+            if na(state.extHigh)
+                state.extHigh := line.new(state.startIndex, state.sHigh, bar_index, state.sHigh, color=borderColor, style=line.style_dashed, extend=extend.right)
+                state.extLow  := line.new(state.startIndex, state.sLow, bar_index, state.sLow, color=borderColor, style=line.style_dashed, extend=extend.right)
+            else
+                line.set_y1(state.extHigh, state.sHigh), line.set_y2(state.extHigh, state.sHigh)
+                line.set_x2(state.extHigh, bar_index)
+                line.set_y1(state.extLow, state.sLow), line.set_y2(state.extLow, state.sLow)
+                line.set_x2(state.extLow, bar_index)
+        else
+            line.delete(state.extHigh), line.delete(state.extLow)
+            state.extHigh := na, state.extLow := na
+
+    state.wasInSession := inS
+
+// =============================================================================
+// USER INTERFACE (INPUTS)
+// =============================================================================
+gV = "SESSIONS VISIBILITY"
+sL  = input.bool(true, "London", group=gV)
+sLO = input.bool(false, "London (Electronic)", group=gV)
+sN  = input.bool(true, "New York", group=gV)
+sNO = input.bool(false, "New York (Electronic)", group=gV)
+sT  = input.bool(true, "Tokyo", group=gV)
+sSY = input.bool(true, "Sydney", group=gV) // Corretto variabile e label
+
+gL = " LONDON (RTH) ------------------------------------------------"
+t1 = input.session("0800-1630", "", inline="l1", group=gL), z1 = input.string("Europe/London", "", inline="l2", group=gL), c1 = input.color(color.new(#2962FF, 85), "", inline="l2", group=gL), h1 = input.bool(true, "Hist", inline="l2", group=gL), e1 = input.bool(false, "Ext", inline="l2", group=gL)
+
+gLO = "LONDON (Electronic) ---------------------------------------"
+t2 = input.session("2300-0800", "", inline="lo1", group=gLO), z2 = input.string("Europe/London", "", inline="lo2", group=gLO), c2 = input.color(color.new(#4a4a4a, 90), "", inline="lo2", group=gLO), h2 = input.bool(false, "Hist", inline="lo2", group=gLO), e2 = input.bool(true, "Ext", inline="lo2", group=gLO)
+
+gN = " NEW YORK (RTH) ----------------------------------------------"
+t3 = input.session("0930-1600", "", inline="n1", group=gN), z3 = input.string("America/New_York", "", inline="n2", group=gN), c3 = input.color(color.new(#f23645, 85), "", inline="n2", group=gN), h3 = input.bool(true, "Hist", inline="n2", group=gN), e3 = input.bool(false, "Ext", inline="n2", group=gN)
+
+gNO = "New York (Electronic) -------------------------------------"
+t4 = input.session("1600-0930", "", inline="no1", group=gNO), z4 = input.string("America/New_York", "", inline="no2", group=gNO), c4 = input.color(color.new(#4a4a4a, 90), "", inline="no2", group=gNO), h4 = input.bool(false, "Hist", inline="no2", group=gNO), e4 = input.bool(true, "Ext", inline="no2", group=gNO)
+
+gT = " TOKYO (RTH) --------------------------------------------------"
+t5 = input.session("0900-1530", "", inline="t1", group=gT), z5 = input.string("Asia/Tokyo", "", inline="t2", group=gT), c5 = input.color(color.new(#FF9800, 85), "", inline="t2", group=gT), h5 = input.bool(true, "Hist", inline="t2", group=gT), e5 = input.bool(false, "Ext", inline="t2", group=gT)
+
+gSY = "SYDNEY (RTH) -------------------------------------------------"
+t6 = input.session("1000-1600", "", inline="sy1", group=gSY), z6 = input.string("Australia/Sydney", "", inline="sy2", group=gSY), c6 = input.color(color.new(#00BCD4, 90), "", inline="sy2", group=gSY), h6 = input.bool(true, "Hist", inline="sy2", group=gSY), e6 = input.bool(false, "Ext", inline="sy2", group=gSY)
+
+// =============================================================================
+// STATE INITIALIZATION & EXECUTION
+// =============================================================================
+var st1 = SessionState.new(na, na, na, na, na, 0.0, 0.0, 0, false)
+var st2 = SessionState.new(na, na, na, na, na, 0.0, 0.0, 0, false)
+var st3 = SessionState.new(na, na, na, na, na, 0.0, 0.0, 0, false)
+var st4 = SessionState.new(na, na, na, na, na, 0.0, 0.0, 0, false)
+var st5 = SessionState.new(na, na, na, na, na, 0.0, 0.0, 0, false)
+var st6 = SessionState.new(na, na, na, na, na, 0.0, 0.0, 0, false)
+
+if not timeframe.isdwm
+    f_manageSession(st1, sL, h1, e1, "LONDON", t1, z1, c1, 11, 0) 
+    f_manageSession(st2, sLO, h2, e2, "LON (ETH)", t2, z2, c2)
+    f_manageSession(st3, sN, h3, e3, "NEW YORK", t3, z3, c3, 12, 30) 
+    f_manageSession(st4, sNO, h4, e4, "NY (ETH)", t4, z4, c4)
+    f_manageSession(st5, sT, h5, e5, "TOKYO", t5, z5, c5)
+    f_manageSession(st6, sSY, h6, e6, "SYDNEY", t6, z6, c6)
