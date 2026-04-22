@@ -4,6 +4,19 @@
 ## 📌 Executive Summary
 V-SESSIONS is a high-performance architectural framework designed to manage and visualize global trading sessions with precision across multiple timezones. Leveraging **User-Defined Types (UDT)**, this engine maintains state persistence and ensures optimal memory management, providing a professional-grade solution for platform operations and liquidity analysis.
 
+## 🖼 Operational Showcase
+<p align="center">
+  <img src="./v-sessions-multi-timezone-market-mapping-engine.png" width="800" alt="Global Session Mapping Engine">
+  <br>
+  <em>Figure 1: Automated synchronization of London, New York, and Sydney sessions using persistent state logic.</em>
+</p>
+
+<p align="center">
+  <img src="./v-sessions-institutional-liquidity-state-management.png" width="800" alt="RTH vs ETH Liquidity Analysis">
+  <br>
+  <em>Figure 2: Precision mapping of Regular Trading Hours (RTH) vs Electronic Trading Hours (ETH) to identify institutional liquidity gaps.</em>
+</p>
+
 ## 🛠 Technical Specifications
 - **Language:** Pine Script v5
 - **Architecture:** Object-Oriented approach utilizing `type SessionState`.
@@ -20,12 +33,6 @@ V-SESSIONS is a high-performance architectural framework designed to manage and 
 - **Risk Mitigation:** Standardizes session boundaries to prevent execution errors during low-liquidity transitions.
 - **Operational Clarity:** Provides a unified technical view for desk operators managing multi-asset portfolios globally.
 - **System Efficiency:** Optimized code structure minimizes client-side overhead and improves platform stability.
-
-## 📐 Logical Flow
-1. **Detection:** Real-time monitoring of session transitions via `time()` synchronization.
-2. **State Reset:** Automated clearing of historical buffers and re-initialization of session-specific UDTs.
-3. **Dynamic Update:** Continuous coordinate recalculation for precise UI/UX rendering (labels/boxes).
-4. **Post-Session Logic:** Handles persistent level extensions for ongoing price action reference.
 
 ---
 **Developer:** [Vito Santarsiero](https://www.linkedin.com/in/vito-santarsiero)  
